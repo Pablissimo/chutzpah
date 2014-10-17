@@ -274,7 +274,7 @@ namespace Chutzpah.Facts
                 var context = creator.ClassUnderTest.BuildContext("test.js", new TestOptions());
 
                 Assert.Equal(@"C:\folder", context.TestHarnessDirectory);
-                Assert.Equal(@"C:\folder\test.js", context.InputTestFile);
+                Assert.Equal(new[]{ @"C:\folder\test.js" }, context.InputTestFiles);
             }
 
             [Fact]
@@ -410,7 +410,7 @@ namespace Chutzpah.Facts
 
                 Assert.Equal(@"qunitRunner.js", context.TestRunner);
                 Assert.Equal(@"C:\testThing.html", context.TestHarnessPath);
-                Assert.Equal(@"C:\testThing.html", context.InputTestFile);
+                Assert.Equal(new[]{ @"C:\testThing.html" }, context.InputTestFiles);
                 Assert.False(context.IsRemoteHarness);
                 Assert.Empty(context.ReferencedFiles);
             }
@@ -428,7 +428,7 @@ namespace Chutzpah.Facts
 
                 Assert.Equal(@"qunitRunner.js", context.TestRunner);
                 Assert.Equal(@"http://someUrl.com", context.TestHarnessPath);
-                Assert.Equal(@"http://someUrl.com", context.InputTestFile);
+                Assert.Equal(new[]{ @"http://someUrl.com" }, context.InputTestFiles);
                 Assert.True(context.IsRemoteHarness);
                 Assert.Empty(context.ReferencedFiles);
             }

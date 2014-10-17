@@ -53,6 +53,7 @@ namespace Chutzpah.Facts
                 Mock<IFileSystemWrapper>().Setup(x => x.GetRandomFileName()).Returns("unique");
                 Mock<IFileSystemWrapper>().Setup(x => x.FolderExists(It.IsAny<string>())).Returns(true);
                 Mock<IHasher>().Setup(x => x.Hash(It.IsAny<string>())).Returns("hash");
+                Mock<IHasher>().Setup(x => x.Hash(It.IsAny<IEnumerable<string>>())).Returns("hash");
                 Mock<IFileProbe>()
                     .Setup(x => x.GetPathInfo(@"TestFiles\qunit.html"))
                     .Returns(new PathInfo { Type = PathType.JavaScript, FullPath = @"path\qunit.html" });
@@ -68,7 +69,7 @@ namespace Chutzpah.Facts
                 var context =  new TestContext
                 {
 
-                    InputTestFile = @"C:\folder\test.js",
+                    InputTestFiles = new[]{ @"C:\folder\test.js" },
                     TestHarnessDirectory = @"C:\folder",
                     FrameworkDefinition = Mock<IFrameworkDefinition>().Object,
                     TestFileSettings = new ChutzpahTestSettingsFile()
@@ -90,7 +91,7 @@ namespace Chutzpah.Facts
 
             creator.Mock<IFileSystemWrapper>().Verify(x => x.Save(@"C:\folder\_Chutzpah.hash.test.html", It.IsAny<string>()));
             Assert.Equal(@"C:\folder\_Chutzpah.hash.test.html", context.TestHarnessPath);
-            Assert.Equal(@"C:\folder\test.js", context.InputTestFile);
+            Assert.Equal(new[]{ @"C:\folder\test.js" }, context.InputTestFiles);
         }
 
         [Fact]

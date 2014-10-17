@@ -82,7 +82,7 @@ namespace Chutzpah
                 stack += "\n";
             }
 
-            return string.Format("Error: {0}\n{1}While Running:{2}\n", error.Message, stack, error.InputTestFile);
+            return string.Format("Error: {0}\n{1}While Running:{2}\n", error.Message, stack, string.Join(", ", error.InputTestFiles));
         }
 
         protected virtual string GetFileErrorMessage(TestError error)

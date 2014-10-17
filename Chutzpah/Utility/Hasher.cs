@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Linq;
 
 namespace Chutzpah.Utility
 {
@@ -22,6 +24,11 @@ namespace Chutzpah.Utility
             if (String.IsNullOrEmpty(input)) return null;
             input += versionSalt;
             return BytesToString(md5.Value.ComputeHash(Encoding.UTF8.GetBytes(input)));
+        }
+
+        public string Hash(IEnumerable<string> input)
+        {
+            return this.Hash(string.Join("", input.OrderBy(x => x)));
         }
 
         private string BytesToString(byte[] arr)

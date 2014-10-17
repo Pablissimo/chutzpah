@@ -9,7 +9,7 @@ namespace Chutzpah.Models
             Stack = new List<Stack>();
         }
 
-        public string InputTestFile { get; set; }
+        public IEnumerable<string> InputTestFiles { get; set; }
         public string Message { get; set; }
         public IList<Stack> Stack { get; set; }
     }

@@ -107,7 +107,7 @@ namespace Chutzpah
 
                     return new TestContext
                     {
-                        InputTestFile = testFilePath,
+                        InputTestFiles = new[]{ testFilePath },
                         TestHarnessPath = testFilePath,
                         IsRemoteHarness = testFileKind == PathType.Url,
                         TestRunner = definition.GetTestRunner(chutzpahTestSettings),
@@ -143,7 +143,7 @@ namespace Chutzpah
                 {
                     FrameworkDefinition = definition,
                     CoverageEngine = coverageEngine,
-                    InputTestFile = testFilePath,
+                    InputTestFiles = new[]{ testFilePath },
                     TestHarnessDirectory = testHarnessDirectory,
                     ReferencedFiles = referencedFiles,
                     TestRunner = definition.GetTestRunner(chutzpahTestSettings),

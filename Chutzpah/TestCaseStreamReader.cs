@@ -11,6 +11,7 @@ using Chutzpah.Models.JS;
 using Chutzpah.Transformers;
 using Chutzpah.Wrappers;
 using JsonSerializer = Chutzpah.Wrappers.JsonSerializer;
+using System.Collections.Generic;
 
 namespace Chutzpah
 {
@@ -37,7 +38,7 @@ namespace Chutzpah
             this.coverageEngine = coverageEngine;
         }
 
-        public TestFileSummary Read(ProcessStream processStream, TestOptions testOptions, TestContext testContext, ITestMethodRunnerCallback callback, bool debugEnabled)
+        public TestFileSummary[] Read(ProcessStream processStream, TestOptions testOptions, TestContext testContext, ITestMethodRunnerCallback callback, bool debugEnabled)
         {
             if (processStream == null) throw new ArgumentNullException("processStream");
             if (testOptions == null) throw new ArgumentNullException("testOptions");
@@ -45,7 +46,7 @@ namespace Chutzpah
             
             lastTestEvent = DateTime.Now;
             var timeout = (testContext.TestFileSettings.TestFileTimeout ?? testOptions.TestFileTimeoutMilliseconds) + 500; // Add buffer to timeout to account for serialization
-            var readerTask = Task<TestFileSummary>.Factory.StartNew(() => ReadFromStream(processStream.StreamReader, testContext, testOptions, callback, debugEnabled));
+            var readerTask = Task<TestFileSummary[]>.Factory.StartNew(() => ReadFromStream(processStream.StreamReader, testContext, testOptions, callback, debugEnabled));
             while (readerTask.Status == TaskStatus.WaitingToRun
                || (readerTask.Status == TaskStatus.Running && (DateTime.Now - lastTestEvent).TotalMilliseconds < timeout))
             {
@@ -54,35 +55,38 @@ namespace Chutzpah
 
             if (readerTask.IsCompleted)
             {
-                ChutzpahTracer.TraceInformation("Finished reading stream from test file '{0}'", testContext.InputTestFile);
+                ChutzpahTracer.TraceInformation("Finished reading stream from test file '{0}'", testContext.InputTestFiles);
                 return readerTask.Result;
             }
             else
             {
                 // We timed out so kill the process and return an empty test file summary
-                ChutzpahTracer.TraceError("Test file '{0}' timed out after running for {1} milliseconds", testContext.InputTestFile, (DateTime.Now - lastTestEvent).TotalMilliseconds);
+                ChutzpahTracer.TraceError("Test file '{0}' timed out after running for {1} milliseconds", testContext.InputTestFiles, (DateTime.Now - lastTestEvent).TotalMilliseconds);
 
                 processStream.TimedOut = true;
                 processStream.KillProcess();
-                return new TestFileSummary(testContext.InputTestFile);
+                return testContext.InputTestFiles.Select(x => new TestFileSummary(x)).ToArray();
             }
         }
 
-        private TestFileSummary ReadFromStream(StreamReader stream, TestContext testContext, TestOptions testOptions, ITestMethodRunnerCallback callback, bool debugEnabled)
+        private TestFileSummary[] ReadFromStream(StreamReader stream, TestContext testContext, TestOptions testOptions, ITestMethodRunnerCallback callback, bool debugEnabled)
         {
-            var referencedFile = testContext.ReferencedFiles.SingleOrDefault(x => x.IsFileUnderTest);
-            var testIndex = 0;
-            var summary = new TestFileSummary(testContext.InputTestFile);
-
-
             var codeCoverageEnabled = (!testContext.TestFileSettings.EnableCodeCoverage.HasValue && testOptions.CoverageOptions.Enabled)
                                       || (testContext.TestFileSettings.EnableCodeCoverage.HasValue && testContext.TestFileSettings.EnableCodeCoverage.Value);
+            
+            var summaries = 
+                testContext
+                .InputTestFiles
+                .ToDictionary(x => x, x => new TestFileSummary(x) 
+                {
+                    CoverageObject = codeCoverageEnabled ? new CoverageData() : null
+                });
 
-            if (codeCoverageEnabled)
-            {
-                summary.CoverageObject = new CoverageData();
-            }
+            var referencedFile = testContext.ReferencedFiles.SingleOrDefault(x => x.IsFileUnderTest);
+            var testIndex = 0;
 
+
+            TestFileSummary summary = null;
             string line;
             while ((line = stream.ReadLine()) != null)
             {
@@ -93,6 +97,9 @@ namespace Chutzpah
                 var type = match.Groups["type"].Value;
                 var json = match.Groups["json"].Value;
 
+                // TODO: Pull this from the read-back stream info
+                var file = testContext.InputTestFiles.First();
+
                 // Only update last event timestamp if it is an important event.
                 // Log and error could happen even though no test progress is made
                 if (!type.Equals("Log") && !type.Equals("Error"))
@@ -100,13 +107,15 @@ namespace Chutzpah
                     lastTestEvent = DateTime.Now;
                 }
 
+                summary = summaries[file];
+
                 try
                 {
                     JsTestCase jsTestCase = null;
                     switch (type)
                     {
                         case "FileStart":
-                            callback.FileStarted(testContext.InputTestFile);
+                            callback.FileStarted(file);
                             break;
 
                         case "CoverageObject":
@@ -117,18 +126,18 @@ namespace Chutzpah
                         case "FileDone":
                             var jsFileDone = jsonSerializer.Deserialize<JsFileDone>(json);
                             summary.TimeTaken = jsFileDone.TimeTaken;
-                            callback.FileFinished(testContext.InputTestFile, summary);
+                            callback.FileFinished(file, summary);
                             break;
 
                         case "TestStart":
                             jsTestCase = jsonSerializer.Deserialize<JsTestCase>(json);
-                            jsTestCase.TestCase.InputTestFile = testContext.InputTestFile;
+                            jsTestCase.TestCase.InputTestFile = file;
                             callback.TestStarted(jsTestCase.TestCase);
                             break;
 
                         case "TestDone":
                             jsTestCase = jsonSerializer.Deserialize<JsTestCase>(json);
-                            jsTestCase.TestCase.InputTestFile = testContext.InputTestFile;
+                            jsTestCase.TestCase.InputTestFile = file;
                             AddLineNumber(referencedFile, testIndex, jsTestCase);
                             testIndex++;
                             callback.TestFinished(jsTestCase.TestCase);
@@ -145,7 +154,7 @@ namespace Chutzpah
                                 break;
                             }
 
-                            log.Log.InputTestFile = testContext.InputTestFile;
+                            log.Log.InputTestFile = file;
                             callback.FileLog(log.Log);
                             summary.Logs.Add(log.Log);
                             break;
@@ -153,7 +162,7 @@ namespace Chutzpah
                         case "Error":
 
                             var error = jsonSerializer.Deserialize<JsError>(json);
-                            error.Error.InputTestFile = testContext.InputTestFile;
+                            error.Error.InputTestFiles = new[] { file };
                             callback.FileError(error.Error);
                             summary.Errors.Add(error.Error);
 
@@ -169,7 +178,7 @@ namespace Chutzpah
                 }
             }
 
-            return summary;
+            return summaries.Values.ToArray();
         }
 
         private static void AddLineNumber(ReferencedFile referencedFile, int testIndex, JsTestCase jsTestCase)

@@ -76,7 +76,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#FileStart#_# {""type"": ""FileStart"", ""timetaken"":88}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -91,7 +91,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#FileDone#_# {""type"":""FileDone"",""timetaken"":10,""failed"":1,""passed"":2}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -110,7 +110,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#TestStart#_# {""type"":""TestStart"",""testCase"":{""moduleName"":""module"",""testName"":""test"",""testResults"":[]}}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -130,7 +130,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#TestDone#_# {""type"":""TestDone"",""testCase"":{""moduleName"":""module"",""testName"":""test"",""testResults"":[]}}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -150,7 +150,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#Log#_# {""type"":""Log"",""Log"":{""message"":""hi""}}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -170,7 +170,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#Log#_# {""type"":""Log"",""Log"":{""message"":""!!_!! hi""}}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -187,7 +187,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
                 var json = @"#_#Error#_# {""type"":""Error"",""Error"":{""message"":""uhoh"", ""stack"":[{""file"":""errorFile"",""function"":""errorFunc"",""line"":22}]}}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -197,7 +197,7 @@ namespace Chutzpah.Facts
                 reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
 
                 Assert.NotNull(result);
-                Assert.Equal("file", result.InputTestFile);
+                Assert.Equal(new[]{ "file" }, result.InputTestFiles);
                 Assert.Equal("uhoh", result.Message);
                 Assert.Equal("errorFile", result.Stack[0].File);
                 Assert.Equal("errorFunc", result.Stack[0].Function);
@@ -212,14 +212,16 @@ namespace Chutzpah.Facts
                 var json = @"
 #_#TestDone#_# {""type"":""TestDone"",""testCase"":{""moduleName"":""module"",""testName"":""test"",""testResults"":[{""message"":""bad"",""passed"":false,""actual"":4,""expected"":5}]}}
 ";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
 
+                Assert.Equal(1, summaries.Length);
 
+                var summary = summaries[0];
                 Assert.Equal(1, summary.Tests.Count);
                 Assert.Equal(1, summary.Tests[0].TestResults.Count);
                 Assert.Equal("file", summary.Tests[0].InputTestFile);
@@ -241,13 +243,16 @@ namespace Chutzpah.Facts
 #_#Log#_# {""type"":""Log"",""Log"":{""message"":""hi""}}
 #_#Log#_# {""type"":""Log"",""Log"":{""message"":""bye""}}
 ";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
 
+                Assert.Equal(1, summaries.Length);
+
+                var summary = summaries[0];
                 Assert.Equal(2, summary.Logs.Count);
                 Assert.Equal("file", summary.Logs[0].InputTestFile);
                 Assert.Equal("hi", summary.Logs[0].Message);
@@ -262,15 +267,18 @@ namespace Chutzpah.Facts
                 var json = @"
 #_#Error#_# {""type"":""Error"",""Error"":{""message"":""uhoh"", ""stack"":[{""file"":""errorFile"",""function"":""errorFunc"",""line"":22}]}}
 ";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
-                
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
+
+                Assert.Equal(1, summaries.Length);
+
+                var summary = summaries[0];
                 Assert.Equal(1, summary.Errors.Count);
-                Assert.Equal("file", summary.Errors[0].InputTestFile);
+                Assert.Equal(new[]{ "file" }, summary.Errors[0].InputTestFiles);
                 Assert.Equal("uhoh", summary.Errors[0].Message);
                 Assert.Equal("errorFile", summary.Errors[0].Stack[0].File);
                 Assert.Equal("errorFunc", summary.Errors[0].Stack[0].Function);
@@ -283,14 +291,14 @@ namespace Chutzpah.Facts
                 var reader = new TestableTestCaseStreamReader();
 
                 var json = @"";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions { CoverageOptions = new CoverageOptions { Enabled = false } }, context, callback.Object, false);
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions { CoverageOptions = new CoverageOptions { Enabled = false } }, context, callback.Object, false);
 
-                Assert.Null(summary.CoverageObject);
+                Assert.Null(summaries[0].CoverageObject);
             }
 
             [Fact]
@@ -299,14 +307,14 @@ namespace Chutzpah.Facts
                 var reader = new TestableTestCaseStreamReader();
 
                 var json = @"";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions { CoverageOptions = new CoverageOptions { Enabled = true } }, context, callback.Object, false);
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions { CoverageOptions = new CoverageOptions { Enabled = true } }, context, callback.Object, false);
 
-                Assert.NotNull(summary.CoverageObject);
+                Assert.NotNull(summaries[0].CoverageObject);
             }
 
             [Fact]
@@ -315,7 +323,7 @@ namespace Chutzpah.Facts
                 var reader = new TestableTestCaseStreamReader();
 
                 var json = @"#_#CoverageObject#_# {""type"":""CoverageObject"",""Object"":{}}";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
@@ -323,9 +331,9 @@ namespace Chutzpah.Facts
                 reader.Mock<ICoverageEngine>().Setup(ce => ce.DeserializeCoverageObject(It.IsAny<string>(), context)).
                     Returns(new CoverageData());
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
 
-                Assert.NotNull(summary.CoverageObject);
+                Assert.NotNull(summaries[0].CoverageObject);
             }
 
             [Fact]
@@ -337,13 +345,16 @@ namespace Chutzpah.Facts
 #_#Log#_# ""type"":""Log"",""Log"":{""message"":""hi""}}
 #_#Log#_# {""type"":""Log"",""Log"":{""message"":""bye""}}
 ";
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
                 var processStream = new ProcessStream(new Mock<IProcessWrapper>().Object, stream);
                 var callback = new Mock<ITestMethodRunnerCallback>();
 
-                var summary = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
+                var summaries = reader.ClassUnderTest.Read(processStream, new TestOptions(), context, callback.Object, false);
 
+                Assert.Equal(1, summaries.Length);
+
+                var summary = summaries[0];
                 Assert.Equal(1, summary.Logs.Count);
                 Assert.Equal("file", summary.Logs[0].InputTestFile);
                 Assert.Equal("bye", summary.Logs[0].Message);
@@ -364,7 +375,7 @@ namespace Chutzpah.Facts
                 var context = new TestContext
                 {
                     TestHarnessPath = "htmlTestFile",
-                    InputTestFile = "inputTestFile",
+                    InputTestFiles = new[]{ "inputTestFile" },
                     ReferencedFiles = new[] { referencedFile }
                 };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
@@ -396,7 +407,7 @@ namespace Chutzpah.Facts
                 var context = new TestContext
                 {
                     TestHarnessPath = "htmlTestFile",
-                    InputTestFile = "inputTestFile",
+                    InputTestFiles = new[] {"inputTestFile" },
                     ReferencedFiles = new[] { referencedFile }
                 };
                 var stream = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(json)));
@@ -419,7 +430,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
 
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new WaitingStreamReader(new MemoryStream(Encoding.UTF8.GetBytes("")), 1000);
                 var process = new Mock<IProcessWrapper>();
                 var processStream = new ProcessStream(process.Object, stream);
@@ -437,7 +448,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
 
-                var context = new TestContext { InputTestFile = "file" };
+                var context = new TestContext { InputTestFiles = new[]{ "file" } };
                 var stream = new WaitingStreamReader(new MemoryStream(Encoding.UTF8.GetBytes("")), 1000);
                 var process = new Mock<IProcessWrapper>();
                 var processStream = new ProcessStream(process.Object, stream);
@@ -455,7 +466,7 @@ namespace Chutzpah.Facts
             {
                 var reader = new TestableTestCaseStreamReader();
 
-                var context = new TestContext { InputTestFile = "file", TestFileSettings = new ChutzpahTestSettingsFile{ TestFileTimeout = 200} };
+                var context = new TestContext { InputTestFiles = new[]{ "file" }, TestFileSettings = new ChutzpahTestSettingsFile{ TestFileTimeout = 200} };
                 var stream = new WaitingStreamReader(new MemoryStream(Encoding.UTF8.GetBytes("")), 1000);
                 var process = new Mock<IProcessWrapper>();
                 var processStream = new ProcessStream(process.Object, stream);

@@ -16,7 +16,7 @@ namespace Chutzpah.Models
         /// <summary>
         /// The test file given by the user
         /// </summary>
-        public string InputTestFile { get; set; }
+        public string[] InputTestFiles { get; set; }
 
         /// <summary>
         /// The path to the test runner
