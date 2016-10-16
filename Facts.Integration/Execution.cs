@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Chutzpah.Exceptions;
 using Chutzpah.Models;
-using Moq;
 using Xunit;
 using Xunit.Extensions;
 
@@ -18,9 +15,7 @@ namespace Chutzpah.Facts.Integration
             {
                 return new[]
                     {
-                        new object[] {@"JS\Test\references-qunit.js"},
-                        new object[] {@"JS\Test\references-jasmine.js"},
-                        new object[] {@"JS\Test\references-mocha.js"}
+                        new object[] {@"JS\Test\references-qunit.js"}
                     };
             }
         }
@@ -31,9 +26,7 @@ namespace Chutzpah.Facts.Integration
             {
                 return new[]
                     {
-                        new object[] {@"JS\Test\HtmlTemplate\template-qunit.js"},
-                        new object[] {@"JS\Test\HtmlTemplate\template-jasmine.js"},
-                        new object[] {@"JS\Test\HtmlTemplate\template-mocha.js"}
+                        new object[] {@"JS\Test\HtmlTemplate\template-qunit.js"}
                     };
             }
         }
@@ -49,11 +42,7 @@ namespace Chutzpah.Facts.Integration
                         new object[] { @"JS\Test\basic-jasmine.js", "2" },
                         new object[] {@"JS\Test\basic-mocha-bdd.js", null }, 
                         new object[] {@"JS\Test\basic-mocha-tdd.js", null},
-                        new object[] {@"JS\Test\basic-mocha-qunit.js", null},
-                        
-                        // Exports does not work. Not sure how it is supposed to get the 
-                        // exports variable in the browser
-                        //new object[] {@"JS\Test\basic-mocha-exports.js"}
+                        new object[] {@"JS\Test\basic-mocha-qunit.js", null}
                     };
             }
         }
@@ -76,11 +65,11 @@ namespace Chutzpah.Facts.Integration
         
         public Execution()
         {
-            ChutzpahTracer.Enabled = false;
+            ChutzpahTracer.Enabled = TestUtils.TracingEnabled;
         }
 
         [Theory]
-        [PropertyData("ChutzpahSamples")]
+        [MemberData("ChutzpahSamples")]
         public void Will_run_tests_from_chutzpah_samples(string scriptPath, int count)
         {
             var testRunner = TestRunner.Create();
@@ -93,7 +82,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("ManualStartAmdTests")]
+        [MemberData("ManualStartAmdTests")]
         public void Will_run_manual_start_amd_tests(string scriptPath, int count)
         {
             var testRunner = TestRunner.Create();
@@ -107,7 +96,7 @@ namespace Chutzpah.Facts.Integration
 
 
         [Theory]
-        [PropertyData("BasicTestScripts")]
+        [MemberData("BasicTestScripts")]
         public void Will_run_tests_from_a_js_file(string scriptPath, string frameworkVersion)
         {
             var testRunner = TestRunner.Create();
@@ -121,7 +110,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("SkippedTests")]
+        [MemberData("SkippedTests")]
         public void Will_report_skipped_tests(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -176,7 +165,6 @@ namespace Chutzpah.Facts.Integration
         public void Will_run_tests_using_custom_test_harness_path()
         {
             var testRunner = TestRunner.Create();
-            testRunner.EnableDebugMode();
             TestCaseSummary result = testRunner.RunTests(@"JS\Test\TestSettings\CustomTestHarness\customHarnessTest.js", new ExceptionThrowingRunnerCallback());
 
             Assert.Equal(0, result.FailedCount);
@@ -248,7 +236,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("ReferencesTestScripts")]
+        [MemberData("ReferencesTestScripts")]
         public void Will_expand_references_in_a_js_file(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -261,7 +249,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("HtmlTemplateTestScripts")]
+        [MemberData("HtmlTemplateTestScripts")]
         public void Will_load_html_template(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -372,7 +360,7 @@ namespace Chutzpah.Facts.Integration
             Assert.Equal(2, result.TotalCount);
         }
 
-        [Fact(Timeout = 40000)]
+        [Fact]
         public void Will_execute_nothing_if_test_takes_longer_than_timeout()
         {
             var testRunner = TestRunner.Create();
@@ -386,7 +374,7 @@ namespace Chutzpah.Facts.Integration
 
         }
 
-        [Fact(Timeout = 40000)]
+        [Fact]
         public void Will_execute_nothing_if_test_takes_longer_than_timeout_from_settings_file()
         {
             var testRunner = TestRunner.Create();
@@ -400,7 +388,7 @@ namespace Chutzpah.Facts.Integration
             Assert.Equal(0, result.TotalCount);
         }
 
-        [Fact(Timeout = 40000)]
+        [Fact]
         public void Will_execute_nothing_if_test_file_has_infinite_loop()
         {
             var testRunner = TestRunner.Create();
@@ -419,24 +407,12 @@ namespace Chutzpah.Facts.Integration
             var testRunner = TestRunner.Create();
 
             TestCaseSummary result = testRunner.RunTests(new List<string> { @"JS\Test\timeoutTest.js" },
-                                                         new TestOptions { TestFileTimeoutMilliseconds = 2000 },
+                                                         new TestOptions { TestFileTimeoutMilliseconds = 10000 },
                                                          new ExceptionThrowingRunnerCallback());
 
             Assert.Equal(0, result.FailedCount);
             Assert.Equal(1, result.PassedCount);
             Assert.Equal(1, result.TotalCount);
-        }
-
-        [Fact]
-        public void Will_get_file_position_for_qunit_test_without_module()
-        {
-            var testRunner = TestRunner.Create();
-
-            TestCaseSummary result = testRunner.RunTests(@"JS\Test\basic-qunit.js", new ExceptionThrowingRunnerCallback());
-
-            var test = result.Tests.SingleOrDefault(x => x.TestName.Equals("A basic test"));
-            Assert.Equal(3, test.Line);
-            Assert.Equal(8, test.Column);
         }
 
         [Fact]
@@ -524,9 +500,30 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Fact]
+        public void Will_run_multiple_js_files_and_aggregate_results()
+        {
+            var testRunner = TestRunner.Create();
+            ChutzpahTracer.Enabled = true;
+            ChutzpahTracer.AddConsoleListener();
+            var tests = new List<string>
+                {
+                    @"JS\Test\basic-qunit.js",
+                    @"JS\Test\basic-jasmine.js"
+                };
+            TestCaseSummary result = testRunner.RunTests(tests, new ExceptionThrowingRunnerCallback());
+
+            Assert.Equal(2, result.FailedCount);
+            Assert.Equal(6, result.PassedCount);
+            Assert.Equal(8, result.TotalCount);
+        }
+
+        [Fact]
         public void Will_run_multiple_files_and_aggregate_results()
         {
             var testRunner = TestRunner.Create();
+
+            ChutzpahTracer.Enabled = true;
+            ChutzpahTracer.AddConsoleListener();
             var tests = new List<string>
                 {
                     @"JS\Test\basic-qunit.js",
@@ -537,34 +534,6 @@ namespace Chutzpah.Facts.Integration
             Assert.Equal(2, result.FailedCount);
             Assert.Equal(6, result.PassedCount);
             Assert.Equal(8, result.TotalCount);
-        }
-
-        [Fact]
-        public void Will_run_test_which_logs_object_to_console_log()
-        {
-            var testRunner = TestRunner.Create();
-
-            TestCaseSummary result = testRunner.RunTests(@"JS\Test\consoleLog.js", new ExceptionThrowingRunnerCallback());
-
-            Assert.Equal(0, result.FailedCount);
-            Assert.Equal(1, result.PassedCount);
-            Assert.Equal(1, result.TotalCount);
-        }
-
-        [Fact]
-        public void Will_run_test_which_logs_object_to_jasmine_log()
-        {
-            var testRunner = TestRunner.Create();
-            
-            TestCaseSummary result = null;
-            TestUtils.RunAsJasmineVersionOne(() =>
-            {
-                result = testRunner.RunTests(@"JS\Test\jasmineLog.js", new ExceptionThrowingRunnerCallback());
-            });
-
-            Assert.Equal(0, result.FailedCount);
-            Assert.Equal(1, result.PassedCount);
-            Assert.Equal(1, result.TotalCount);
         }
 
         [Fact]
@@ -596,18 +565,6 @@ namespace Chutzpah.Facts.Integration
         {
             var testRunner = TestRunner.Create();
             TestCaseSummary result = testRunner.RunTests(@"JS\Test\consoleError.js", new ExceptionThrowingRunnerCallback());
-
-            Assert.Equal(0, result.FailedCount);
-            Assert.Equal(1, result.PassedCount);
-            Assert.Equal(1, result.TotalCount);
-        }
-
-        [Fact]
-        public void Will_run_test_which_logs_object_to_console_warn()
-        {
-            var testRunner = TestRunner.Create();
-
-            TestCaseSummary result = testRunner.RunTests(@"JS\Test\consoleWarn.js", new ExceptionThrowingRunnerCallback());
 
             Assert.Equal(0, result.FailedCount);
             Assert.Equal(1, result.PassedCount);
@@ -679,7 +636,7 @@ namespace Chutzpah.Facts.Integration
         {
             public TestFileBatching()
             {
-                ChutzpahTracer.Enabled = false;
+                ChutzpahTracer.Enabled = TestUtils.TracingEnabled;
             }
 
             [Fact]
@@ -700,82 +657,6 @@ namespace Chutzpah.Facts.Integration
 
         }
 
-        public class JasmineDdescribeIit : IDisposable
-        {
-            string version;
-
-            public JasmineDdescribeIit()
-            {
-                ChutzpahTracer.Enabled = false;
-                version = ChutzpahTestSettingsFile.Default.FrameworkVersion;
-                ChutzpahTestSettingsFile.Default.FrameworkVersion = "1";
-            }
-
-            [Fact]
-            public void Will_run_jasmine_test_which_uses_iit()
-            {
-                var testRunner = TestRunner.Create();
-
-                var result = testRunner.RunTests(@"JS\Test\jasmine-iit.js", new ExceptionThrowingRunnerCallback());
-
-                Assert.Equal(0, result.FailedCount);
-                Assert.Equal(3, result.PassedCount);
-                Assert.Equal(3, result.TotalCount);
-            }
-
-            [Fact]
-            public void Will_run_jasmine_test_which_uses_ddescribe()
-            {
-                var testRunner = TestRunner.Create();
-
-                var result = testRunner.RunTests(@"JS\Test\jasmine-ddescribe.js", new ExceptionThrowingRunnerCallback());
-
-                Assert.Equal(0, result.FailedCount);
-                Assert.Equal(3, result.PassedCount);
-                Assert.Equal(3, result.TotalCount);
-            }
-
-            [Fact]
-            public void Will_run_jasmine_test_which_uses_ddescribe_from_a_html_file_that_includes_jasmine_ddescribe_iit_after_jasmine()
-            {
-                var testRunner = TestRunner.Create();
-
-                TestCaseSummary result = testRunner.RunTests(@"JS\Test\jasmine-ddescribe-include-after.html", new ExceptionThrowingRunnerCallback());
-
-                Assert.Equal(0, result.FailedCount);
-                Assert.Equal(3, result.PassedCount);
-                Assert.Equal(3, result.TotalCount);
-            }
-
-            [Fact]
-            public void Will_run_jasmine_test_which_uses_ddescribe_from_a_html_file_that_includes_jasmine_ddescribe_iit_before_jasmine()
-            {
-                var testRunner = TestRunner.Create();
-
-                TestCaseSummary result = testRunner.RunTests(@"JS\Test\jasmine-ddescribe-include-before.html", new ExceptionThrowingRunnerCallback());
-
-                Assert.Equal(0, result.FailedCount);
-                Assert.Equal(3, result.PassedCount);
-                Assert.Equal(3, result.TotalCount);
-            }
-
-            [Fact]
-            public void Will_chain_filters_correctly_when_running_jasmine_test_with_ddescribe_from_a_html_file()
-            {
-                var testRunner = TestRunner.Create();
-
-                TestCaseSummary result = testRunner.RunTests(@"JS\Test\jasmine-ddescribe-run-nothing.html", new ExceptionThrowingRunnerCallback());
-
-                Assert.Equal(0, result.TotalCount);
-            }
-
-            public void Dispose()
-            {
-                ChutzpahTestSettingsFile.Default.FrameworkVersion = version;
-            }
-
-        }
-
         public class AMD
         {
             public static IEnumerable<object[]> AmdTestScriptWithForcedRequire
@@ -785,9 +666,6 @@ namespace Chutzpah.Facts.Integration
                     return new[]
                     {
                         new object[] {@"JS\Code\RequireJS\all.tests.qunit.js"},
-                        new object[] {@"JS\Code\RequireJS\all.tests.jasmine.js"},
-                        new object[] {@"JS\Code\RequireJS\all.tests.mocha-qunit.js"},
-                        new object[] {@"JS\Code\RequireJS\MochaWithSettings\all.tests.mocha-qunit.js"}
                     };
                 }
             }
@@ -799,11 +677,6 @@ namespace Chutzpah.Facts.Integration
                     return new[]
                     {
                         new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.jasmine.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.jasmine.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.mocha-qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.mocha-qunit.test.js"},
                     };
                 }
             }
@@ -811,12 +684,12 @@ namespace Chutzpah.Facts.Integration
 
             public AMD()
             {
-                ChutzpahTracer.Enabled = false;
+                ChutzpahTracer.Enabled = TestUtils.TracingEnabled;
             }
 
 
             [Theory]
-            [PropertyData("AmdTestScriptWithAMDMode")]
+            [MemberData("AmdTestScriptWithAMDMode")]
             public void Will_run_requirejs_tests_with_chutzpah_in_amd_mode(string path)
             {
                 var testRunner = TestRunner.Create();
@@ -829,7 +702,7 @@ namespace Chutzpah.Facts.Integration
             }
 
             [Theory]
-            [PropertyData("AmdTestScriptWithForcedRequire")]
+            [MemberData("AmdTestScriptWithForcedRequire")]
             public void Will_run_require_js_test_where_test_file_uses_requirejs_command(string path)
             {
                 var testRunner = TestRunner.Create();
@@ -852,25 +725,13 @@ namespace Chutzpah.Facts.Integration
                 Assert.Equal(2, result.PassedCount);
                 Assert.Equal(2, result.TotalCount);
             }
-
-            [Fact]
-            public void Will_run_jasmine_require_js_test_using_settings_to_place_harness()
-            {
-                var testRunner = TestRunner.Create();
-
-                TestCaseSummary result = testRunner.RunTests(@"JS\Test\requirejs\WithSettings\rjs-jasmine-solo.js", new ExceptionThrowingRunnerCallback());
-
-                Assert.Equal(0, result.FailedCount);
-                Assert.Equal(2, result.PassedCount);
-                Assert.Equal(2, result.TotalCount);
-            }
         }
 
         public class ChutzpahSettingsFile
         {
             public ChutzpahSettingsFile()
             {
-                ChutzpahTracer.Enabled = false;
+                ChutzpahTracer.Enabled = TestUtils.TracingEnabled;
             }
 
             [Fact]

@@ -1,7 +1,7 @@
+
 properties {
   $baseDir = Resolve-Path .
   $configuration = "debug"
-  $xUnit = Resolve-Path .\3rdParty\XUnit\xunit.console.clr4.exe
   $filesDir = "$baseDir\_build"
   $nugetDir = "$baseDir\_nuget"
   $chocolateyDir = "$baseDir\_chocolatey"
@@ -14,7 +14,7 @@ properties {
 # Aliases
 task Default -depends Build
 
-task Install -depends Restore-Packages, Sign-ForeignAssemblies
+task Install -depends Sign-ForeignAssemblies
 
 task Package -depends Clean-Solution-VS,Clean-PackageFiles, Set-Version, Update-VersionInFiles, Build-Solution-VS, Package-Files, Package-NuGet, Package-Chocolatey
 task Clean -depends Clean-Solution-NoVS
@@ -24,6 +24,11 @@ task TeamCity -depends  Clean-TeamCitySolution, Build-TeamCitySolution, Run-Unit
 # Build Tasks
 task Build -depends  Clean-Solution-NoVS, Build-Solution-NoVS, Run-UnitTests, Run-IntegrationTests
 task Build-Full -depends  Clean-Solution-VS, Build-Solution-VS, Run-UnitTests, Run-IntegrationTests
+
+
+function getLatestNugetPackagePath($name) {
+  return @(Get-ChildItem "$nugetPackges\$name.*" | ? { $_.Name -match "$name.(\d)+" } | Sort-Object -Descending)[0]
+}
 
 task Set-Version {
   
@@ -106,10 +111,12 @@ task Run-PerfTester {
 }
 
 task Run-UnitTests {
+    $xUnit = Join-Path (getLatestNugetPackagePath("xunit.runner.console")) "tools/xunit.console.exe"
     exec { & $xUnit "Facts\bin\$configuration\Facts.Chutzpah.dll" }
 }
 
 task Run-IntegrationTests {
+    $xUnit = Join-Path (getLatestNugetPackagePath("xunit.runner.console")) "tools/xunit.console.exe"
     exec { & $xUnit "Facts.Integration\bin\$configuration\Facts.Integration.Chutzpah.dll" }
 }
 
@@ -130,17 +137,9 @@ task Run-Phantom {
   exec {  & $phantom "Chutzpah\JSRunners\$($type)Runner$suffix.js" "file:///$testFilePath" $mode }
 }
 
-task Restore-Packages {
-  exec { .\Tools\nuget.exe restore Chutzpah.VS.sln }
-}
- 
-function getLatestNugetPackagePath($name) {
-  return @(Get-ChildItem "$nugetPackges\$name.*" | ? { $_.Name -match "$name.(\d)+" } | Sort-Object -Descending)[0]
-}
-
 task Sign-ForeignAssemblies {
 
-  $packagesToSign = @("Nancy", "Nancy.Hosting.Self")
+  $packagesToSign = @{"ServiceStack.Text" = "lib/net45"}
   
   clean $autoSignedNugetPackages
  
@@ -154,10 +153,10 @@ task Sign-ForeignAssemblies {
   Write-Host "Signing assemblies"
   $folderPaths = ""
   
-  foreach($name in $packagesToSign) {
-  
+  foreach($name in $packagesToSign.Keys) {
+    $targetFolder = $packagesToSign[$name]
     $folderToSign = getLatestNugetPackagePath $name
-    $fullPath = $folderToSign.FullName
+    $fullPath = Join-Path $folderToSign.FullName $targetFolder
     $folderName = $folderToSign.Name
     
     $folderPaths += $fullpath + "|"

@@ -11,7 +11,7 @@ namespace Chutzpah.Facts.Integration
     {
         public Coverage()
         {
-            ChutzpahTracer.Enabled = false;
+            ChutzpahTracer.Enabled = TestUtils.TracingEnabled;
         }
 
         private const string ABasicTestScript = @"JS\Test\basic-jasmine.js";
@@ -40,9 +40,6 @@ namespace Chutzpah.Facts.Integration
                 return new[]
                 {
                     new object[] {@"JS\Code\RequireJS\all.tests.qunit.js"},
-                    new object[] {@"JS\Code\RequireJS\all.tests.jasmine.js"},
-                    new object[] {@"JS\Code\RequireJS\all.tests.mocha-qunit.js"},
-                    new object[] {@"JS\Code\RequireJS\MochaWithSettings\all.tests.mocha-qunit.js"},
                 };
             }
         }
@@ -54,11 +51,6 @@ namespace Chutzpah.Facts.Integration
                 return new[]
                     {
                         new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.jasmine.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.jasmine.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.mocha-qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.mocha-qunit.test.js"},
                     };
             }
         }
@@ -70,8 +62,6 @@ namespace Chutzpah.Facts.Integration
                 return new[]
                     {
                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.qunit.test.js"},
-                       new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.jasmine.test.js"},
-                       new object[] {@"JS\Code\AMDMode_RequireJS\tests\base\base.mocha-qunit.test.js"},
                     };
             }
         }
@@ -83,8 +73,6 @@ namespace Chutzpah.Facts.Integration
                 return new[]
                     {
                         new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.qunit.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.jasmine.test.js"},
-                        new object[] {@"JS\Code\AMDMode_RequireJS\tests\ui\ui.mocha-qunit.test.js"},
                     };
             }
         }
@@ -101,7 +89,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("ChutzpahSamples")]
+        [MemberData("ChutzpahSamples")]
         public void Will_run_coverage_from_chutzpah_amd_samples(string scriptPath, int count)
         {
             var testRunner = TestRunner.Create();
@@ -112,7 +100,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("ManualStartAmdTests")]
+        [MemberData("ManualStartAmdTests")]
         public void Will_run_manual_start_amd_tests(string scriptPath, int count)
         {
             var testRunner = TestRunner.Create();
@@ -133,10 +121,11 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("BasicTestScripts")]
+        [MemberData("BasicTestScripts")]
         public void Will_create_a_coverage_object(string scriptPath, string frameworkVersion)
         {
             var testRunner = TestRunner.Create();
+            testRunner.EnableDebugMode();
             ChutzpahTestSettingsFile.Default.FrameworkVersion = frameworkVersion;
 
             var result = testRunner.RunTests(scriptPath, WithCoverage(), new ExceptionThrowingRunnerCallback());
@@ -145,7 +134,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("BasicTestScripts")]
+        [MemberData("BasicTestScripts")]
         public void Will_cover_the_correct_scripts(string scriptPath, string frameworkVersion)
         {
             var testRunner = TestRunner.Create();
@@ -157,7 +146,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("BasicTestScripts")]
+        [MemberData("BasicTestScripts")]
         public void Will_get_test_results_with_coverage_enabled(string scriptPath, string frameworkVersion)
         {
             var testRunner = TestRunner.Create();
@@ -370,8 +359,8 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
-        [PropertyData("AmdTestScriptWithAMDMode")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithAMDMode")]
         public void Will_create_coverage_object_for_test_where_test_file_uses_requirejs_command(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -383,7 +372,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithAMDMode_BASE")]
+        [MemberData("AmdTestScriptWithAMDMode_BASE")]
         public void Will_cover_where_test_file_uses_amd_mode_with_base_scripts(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -398,7 +387,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithAMDMode_UI")]
+        [MemberData("AmdTestScriptWithAMDMode_UI")]
         public void Will_cover_where_test_file_uses_amd_mode_with_UI_scripts(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -413,7 +402,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
         public void Will_cover_the_correct_files_for_test_where_test_file_uses_requirejs_command(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -429,7 +418,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
         public void Will_include_only_given_file_patterns(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -444,7 +433,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
         public void Will_exclude_given_file_patterns(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -459,7 +448,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
         public void Will_ignore_only_given_file_patterns(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -474,7 +463,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
         public void Will_resolve_requirejs_required_files_correctly(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -486,7 +475,7 @@ namespace Chutzpah.Facts.Integration
         }
 
         [Theory]
-        [PropertyData("AmdTestScriptWithForcedRequire")]
+        [MemberData("AmdTestScriptWithForcedRequire")]
         public void Will_get_results_for_test_where_test_file_uses_requirejs_command_with_coverage_enabled(string scriptPath)
         {
             var testRunner = TestRunner.Create();
@@ -533,7 +522,7 @@ namespace Chutzpah.Facts.Integration
             }
             if (!ok)
             {
-                throw new Xunit.Sdk.EqualException(string.Join(", ", keySubstringsList), string.Join(", ", dict.Keys), true);
+                throw new Xunit.Sdk.EqualException(string.Join(", ", keySubstringsList), string.Join(", ", dict.Keys));
             }
         }
     }

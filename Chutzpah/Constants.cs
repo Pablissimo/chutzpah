@@ -2,7 +2,7 @@ namespace Chutzpah
 {
     public static class Constants
     {
-        public const string ChutzpahVersion = "4.2.3";
+        public const string ChutzpahVersion = "4.2.4";
 
         public const string TestFileFolder = "TestFiles";
 
@@ -58,6 +58,7 @@ namespace Chutzpah
         public const string DefaultCoverageJsonTransform = "coveragejson";
 
         public const int DefaultWebServerPort = 9876;
+        public const int WebServerCreationAttemptLimit = 20;
         public const string ServerVirtualBuiltInFilesPath = "__chutzpah__";
 
     }
