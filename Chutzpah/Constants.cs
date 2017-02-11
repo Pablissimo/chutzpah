@@ -2,9 +2,9 @@ namespace Chutzpah
 {
     public static class Constants
     {
-        public const string ChutzpahVersion = "4.2.4";
+        public const string ChutzpahVersion = "4.3.2";
 
-        public const string TestFileFolder = "TestFiles";
+        public const string TestFileFolder = "ChutzpahTestHarnessFiles";
 
         public const string LogFileName = "chutzpah.log";
 
@@ -60,6 +60,6 @@ namespace Chutzpah
         public const int DefaultWebServerPort = 9876;
         public const int WebServerCreationAttemptLimit = 20;
         public const string ServerVirtualBuiltInFilesPath = "__chutzpah__";
-
+        public const string FileUrlShaKey = "sha";
     }
 }

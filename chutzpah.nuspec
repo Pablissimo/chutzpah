@@ -14,7 +14,7 @@
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <tags>testing javascript tdd qunit jasmine mocha coffeescript typescript</tags>
         <releaseNotes>
-* Small bug fixes
+* Fix bug in coverage timeout setting
         </releaseNotes>
     </metadata>
 </package>

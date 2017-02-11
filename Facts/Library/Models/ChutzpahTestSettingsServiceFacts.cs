@@ -469,7 +469,10 @@ namespace Chutzpah.Facts.Library.Models
 
             if (!ChutzpahTestSettingsFile.ForceWebServerMode)
             {
-                Assert.Equal(parentSettings.Server, childSettings.Server);
+                Assert.Equal(parentSettings.Server.RootPath, childSettings.Server.RootPath);
+                Assert.Equal(parentSettings.Server.Enabled, childSettings.Server.Enabled);
+                Assert.Equal(parentSettings.Server.DefaultPort, childSettings.Server.DefaultPort);
+                Assert.Equal(parentSettings.Server.FileCachingEnabled, childSettings.Server.FileCachingEnabled);
             }
         }
 

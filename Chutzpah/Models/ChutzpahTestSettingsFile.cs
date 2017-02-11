@@ -52,6 +52,7 @@ namespace Chutzpah.Models
             Enabled = true;
             DefaultPort = Constants.DefaultWebServerPort;
             RootPath = Path.GetPathRoot(Environment.CurrentDirectory);
+            FileCachingEnabled = true;
         }
     }
 
@@ -62,7 +63,7 @@ namespace Chutzpah.Models
     public class ChutzpahTestSettingsFile
     {
         public static ChutzpahTestSettingsFile Default = new ChutzpahTestSettingsFile(true);
-        public const bool ForceWebServerMode = true;
+        public const bool ForceWebServerMode = false;
 
         private Regex testPatternRegex;
 
@@ -236,6 +237,11 @@ namespace Chutzpah.Models
         public ICollection<string> CodeCoverageIgnores { get; set; }
 
         /// <summary>
+        /// The timeout in milliseconds for how long to wait to instrument each file. Defaults to 5000ms. 
+        /// </summary>
+        public int? CodeCoverageTimeout { get; set; }
+
+        /// <summary>
         /// The dictionary of browser name (keys) to corresponding browser arguments (values), i.e.; { 'chrome': '--allow-file-access-from-files' }.
         /// </summary>
         public IDictionary<string, string> BrowserArguments { get; set; }
@@ -342,6 +348,7 @@ namespace Chutzpah.Models
                 return testPatternRegex ?? (testPatternRegex = new Regex(TestPattern));
             }
         }
+
 
         public override int GetHashCode()
         {
@@ -460,6 +467,8 @@ namespace Chutzpah.Models
             this.Parallelism = this.Parallelism ?? parent.Parallelism;
             this.EnableTracing = this.EnableTracing ?? parent.EnableTracing;
             this.TraceFilePath = this.TraceFilePath ?? parent.TraceFilePath;
+            this.CodeCoverageTimeout = this.CodeCoverageTimeout ?? parent.CodeCoverageTimeout;
+            
 
             // Deprecated
             this.AMDBasePath = this.AMDBasePath ?? parent.AMDBasePath;

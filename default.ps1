@@ -9,12 +9,25 @@ properties {
   
   $autoSignedNugetPackages = "$baseDir/packages_autosigned"
   $nugetPackges = "$baseDir/packages"
+
+  # Temp work around psake limitation to not use Msbuild 15
+  $defaultMSBuildPath = Join-Path (Resolve-Path "${env:ProgramFiles(x86)}") "Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\MSBuild.exe"
+  if($env:Chutzpah_MSBuild_Path -and (Test-Path $env:Chutzpah_MSBuild_Path)) {
+    $msbuild = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\MSBuild.exe"
+  } 
+  elseif (Test-Path $defaultMSBuildPath) {
+    $msbuild = $defaultMSBuildPath
+  }
+  else {
+    Write-Warning "Unable to find msbuild!!! Please set environment variable Chutzpah_MSBuild_Path to MSBuild.exe version 15"
+    $msbuild = "msbuild"
+  }
 }
 
 # Aliases
 task Default -depends Build
 
-task Install -depends Sign-ForeignAssemblies
+task Install -depends Sign-ForeignAssemblies, Install-TypeScript, Install-NodeModules, Setup-SymbolicLinks
 
 task Package -depends Clean-Solution-VS,Clean-PackageFiles, Set-Version, Update-VersionInFiles, Build-Solution-VS, Package-Files, Package-NuGet, Package-Chocolatey
 task Clean -depends Clean-Solution-NoVS
@@ -79,29 +92,29 @@ task Clean-PackageFiles {
 # CodeBetter TeamCity does not have VS SDK installed so we use a custom solution that does not build the 
 # VS components
 task Clean-TeamCitySolution {
-    exec { msbuild TeamCity.CodeBetter.sln /t:Clean /v:quiet }
+    exec { & $msbuild TeamCity.CodeBetter.sln /t:Clean /v:quiet }
 
 }
 task Clean-Solution-VS {
-    exec { msbuild Chutzpah.VS.sln /t:Clean /v:quiet }
+    exec { & $msbuild Chutzpah.VS.sln /t:Clean /v:quiet }
 }
 
 task Clean-Solution-NoVS {
-    exec { msbuild Chutzpah.NoVS.sln /t:Clean /v:quiet }
+    exec { & $msbuild Chutzpah.NoVS.sln /t:Clean /v:quiet }
 }
 
 # CodeBetter TeamCity does not have VS SDK installed so we use a custom solution that does not build the 
 # VS components
 task Build-TeamCitySolution {
-    exec { msbuild TeamCity.CodeBetter.sln /maxcpucount /t:Build /v:Minimal /p:Configuration=$configuration }
+    exec { & $msbuild TeamCity.CodeBetter.sln /maxcpucount /t:Build /v:Minimal /p:Configuration=$configuration }
 }
 
 task Build-Solution-VS {
-    exec { msbuild Chutzpah.VS.sln /maxcpucount /t:Build /v:Minimal /p:Configuration=$configuration }
+    exec { & $msbuild Chutzpah.VS.sln /maxcpucount /t:Build /v:Minimal /p:Configuration=$configuration }
 }
 
 task Build-Solution-NoVS {
-    exec { msbuild Chutzpah.NoVS.sln /maxcpucount /t:Build /v:Minimal /p:Configuration=$configuration }
+    exec { & $msbuild Chutzpah.NoVS.sln /maxcpucount /t:Build /v:Minimal /p:Configuration=$configuration }
 }
 
 task Run-PerfTester {
@@ -137,6 +150,23 @@ task Run-Phantom {
   exec {  & $phantom "Chutzpah\JSRunners\$($type)Runner$suffix.js" "file:///$testFilePath" $mode }
 }
 
+task Install-TypeScript {
+  
+  exec {  & npm install typescript -g }
+}
+
+task Install-NodeModules {
+  
+  exec {  & npm install typescript -g }
+}
+
+task Setup-SymbolicLinks {
+
+  New-Item -path "$baseDir\Samples\Angular2\Basic\node_modules" -ItemType SymbolicLink -Value "$baseDir\node_modules" -ErrorAction SilentlyContinue
+
+}
+
+
 task Sign-ForeignAssemblies {
 
   $packagesToSign = @{"ServiceStack.Text" = "lib/net45"}
@@ -148,7 +178,7 @@ task Sign-ForeignAssemblies {
   }
   
   $signerToolFolder = (getLatestNugetPackagePath "Brutal.Dev.StrongNameSigner").FullName
-  $signerExe = Join-Path $signerToolFolder Tools/StrongNameSigner.Console.exe
+  $signerExe = Join-Path $signerToolFolder build/StrongNameSigner.Console.exe
   
   Write-Host "Signing assemblies"
   $folderPaths = ""
@@ -172,7 +202,6 @@ task Package-Files -depends Clean-PackageFiles {
     
     create $filesDir, $packageDir
     copy-item "$baseDir\License.txt" -destination $filesDir
-    copy-item "$baseDir\3rdParty\ServiceStack\LICENSE.BSD" -destination $filesDir\ServiceStack.LICENSE.BSD
     roboexec {robocopy "$baseDir\ConsoleRunner\bin\$configuration\" $filesDir /S /xd JS /xf *.xml}
     
     
@@ -197,7 +226,6 @@ task Package-NuGet -depends Clean-PackageFiles, Set-Version {
     create $nugetDir, $nugetTools, $packageDir
     
     copy-item "$baseDir\License.txt", $nuspec -destination $nugetDir
-    copy-item "$baseDir\3rdParty\ServiceStack\LICENSE.BSD" -destination $nugetDir\ServiceStack.LICENSE.BSD
     roboexec {robocopy "$baseDir\ConsoleRunner\bin\$configuration\" $nugetTools /S /xd JS /xf *.xml}
     
     
@@ -239,7 +267,7 @@ task Package-Chocolatey -depends Clean-PackageFiles, Set-Version {
 
 task Push-Nuget -depends Set-Version {
   $v = new-object -TypeName System.Version -ArgumentList $global:version
-	exec { .\Tools\nuget.exe push $packageDir\Chutzpah.$($v.ToString(3)).nupkg }
+  exec { .\Tools\nuget.exe push $packageDir\Chutzpah.$($v.ToString(3)).nupkg -source https://www.nuget.org }
 }
 
 
